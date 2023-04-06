@@ -11,10 +11,15 @@ type 'a graphe = {
       aretes : (int list) array;
 }
 
+(* Graphes de test *)
+
+(* ABC forme une composante fortement connexe, DE aussi *)
 let g1 = {
   sommets = [| 'A'; 'B'; 'C'; 'D'; 'E'; 'F'; 'G'; 'H' |];
   aretes = [| [1]; [2]; [0; 3]; [4]; [3]; [5; 7]; [4]; [6] |]
 }
+
+(* v3 v4 v5 forment une composante fortement connexe, voir papier du sujet figure 2*)
 
 let g2 = {
   sommets = [| '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7' ; '8'|];
