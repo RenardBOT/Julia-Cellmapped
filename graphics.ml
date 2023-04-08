@@ -22,8 +22,8 @@ let julia_workspace = {
 
 (* Dessine chaque cellule dans une image *)
 let draw cells workspace =
-  let width = 500 in
-  let height = 500 in
+  let width = 2000 in
+  let height = 2000 in
   let surface = Cairo.Image.create Cairo.Image.ARGB32 ~w:width ~h:height in
   let cr = Cairo.create surface in
   Cairo.scale cr (float_of_int width) (float_of_int height) ;

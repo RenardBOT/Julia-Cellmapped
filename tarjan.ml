@@ -6,32 +6,27 @@ type cell = {
       p2 : Complex.t;
 }
 
-type 'a graphe = {
-      sommets : 'a array;
-      aretes : (int list) array;
-}
-
 (* Graphes de test *)
 
 (* ABC forme une composante fortement connexe, DE aussi *)
 let g1 = {
-  sommets = [| 'A'; 'B'; 'C'; 'D'; 'E'; 'F'; 'G'; 'H' |];
-  aretes = [| [1]; [2]; [0; 3]; [4]; [3]; [5; 7]; [4]; [6] |]
+  vertices = [| 'A'; 'B'; 'C'; 'D'; 'E'; 'F'; 'G'; 'H' |];
+  edges = [| [1]; [2]; [0; 3]; [4]; [3]; [5; 7]; [4]; [6] |]
 }
 
 (* v3 v4 v5 forment une composante fortement connexe, voir papier du sujet figure 2*)
 
 let g2 = {
-  sommets = [| '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7' ; '8'|];
-  aretes = [| [3;4]; [3;4;5]; [3;4]; [3;4;5]; [4;5]; [5;3;4]; [3;4;5]; [5] ; [3;4;5] |]
+  vertices = [| '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7' ; '8'|];
+  edges = [| [3;4]; [3;4;5]; [3;4]; [3;4;5]; [4;5]; [5;3;4]; [3;4;5]; [5] ; [3;4;5] |]
 }
 
-let tarjan (graphe : 'a graphe) : 'a list list =
-  let nb_sommets = Array.length graphe.sommets in
-  let index_sommet = Array.make nb_sommets (-1) in
-  let bas = Array.make nb_sommets (-1) in
+let tarjan graphe =
+  let nb_vertices = Array.length graphe.vertices in
+  let index_sommet = Array.make nb_vertices (-1) in
+  let bas = Array.make nb_vertices (-1) in
   let pile = Stack.create () in
-  let on_pile = Array.make nb_sommets false in
+  let on_pile = Array.make nb_vertices false in
   let num = ref 0 in
   let composantes = ref [] in
 
@@ -48,22 +43,27 @@ let tarjan (graphe : 'a graphe) : 'a list list =
         bas.(s) <- min bas.(s) bas.(v)
       end else if on_pile.(v) then
         bas.(s) <- min bas.(s) index_sommet.(v)
-    ) graphe.aretes.(s);
+    ) graphe.edges.(s);
 
     if bas.(s) = index_sommet.(s) then begin
       let composante = ref [] in
-      let rec pop_sommets () =
+      let rec pop_vertices () =
         let sommet = Stack.pop pile in
         on_pile.(sommet) <- false;
-        composante := graphe.sommets.(sommet) :: !composante;
-        if sommet <> s then pop_sommets () in
-      pop_sommets ();
+        composante := graphe.vertices.(sommet) :: !composante;
+        if sommet <> s then pop_vertices () in
+      pop_vertices ();
       composantes := !composante :: !composantes
     end in
 
-  for i = 0 to nb_sommets - 1 do
+  for i = 0 to nb_vertices - 1 do
     if index_sommet.(i) = -1 then dfs i
   done;
 
   !composantes
 ;;
+
+let composante_max graphe =
+  let composantes = tarjan graphe in
+  let cmax= List.fold_left (fun acc c -> if List.length c > List.length acc then c else acc) [] composantes in
+  Array.of_list cmax

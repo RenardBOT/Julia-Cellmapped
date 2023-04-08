@@ -38,28 +38,44 @@ let cell_to_string c =
 let make_cell p1 p2 =
   {p1 = p1; p2 = p2;}
 
-let complex re im = 
-  {re = re; im = im}
+  let complex re im = 
+    {re = re; im = im}
 
 (* Divise une cellule c en x parties horizontalement, et y parties verticalement.
    Par exemple subdivide c 2 2 divise une cellule en 4. 
    Retourne une liste contenant toutes les cellules, colonne par colonne*)
-let subdivide c x y lst = 
-  let p1_x = c.p1.re in
-  let p1_y = c.p1.im in
-  let p2_x = c.p2.re in
-  let p2_y = c.p2.im in
-  let dx = (p2_x -. p1_x) /. (float_of_int x) in
-  let dy = (p2_y -. p1_y) /. (float_of_int y) in
+
+let subdivide cell x y =
+  let arr = Array.make (x*y) cell in
+  let dx = (cell.p2.re -. cell.p1.re) /. (float_of_int x) in
+  let dy = (cell.p1.im -. cell.p2.im) /. (float_of_int y) in
   let rec aux i j =
-    match i, j with
-    | i, j when i = x -> lst
-    | i, j when j = y -> aux (i+1) 0
-    | i, j ->
-      let p1 = {re = p1_x +. (float_of_int i) *. dx; im = p1_y +. (float_of_int j) *. dy} in
-      let p2 = {re = p1_x +. (float_of_int (i+1)) *. dx; im = p1_y +. (float_of_int (j+1)) *. dy} in
-      aux i (j+1) @ [make_cell p1 p2]
-  in aux 0 0
+    match i,j with
+    | i,j when i = x -> ()
+    | i,j when j = y -> aux (i+1) 0
+    | i,j ->
+      let p1 = {re = cell.p1.re +. (float_of_int i) *. dx; im = cell.p1.im -. (float_of_int j) *. dy} in
+      let p2 = {re = cell.p1.re +. (float_of_int (i+1)) *. dx; im = cell.p1.im -. (float_of_int (j+1)) *. dy} in
+      arr.(i*y+j) <- {p1 = p1; p2 = p2};
+      aux i (j+1)
+  in aux 0 0;
+  arr
+
+let subdivide_graph g =
+  let arr = Array.make (Array.length g.vertices * 4) g.vertices.(0) in
+  let rec aux i =
+    match i with
+    | i when i = Array.length g.vertices -> ()
+    | i ->
+      let sub = subdivide g.vertices.(i) 2 2 in
+      Array.iteri (fun j x -> arr.(i*4+j) <- x) sub;
+      aux (i+1)
+  in aux 0;
+  arr
+
+(* Affiche les arêtes du graphe *)
+
+
 
 (* Affiche les sommets du graphe *)
 let print_vertices g =
@@ -69,10 +85,11 @@ let print_vertices g =
 let julia z c =
   Complex.add (Complex.mul z z) c
 
+
 (* Calcule la plus petite cellule englobant le tableau des complexes passés en paramètre*) 
 let bounding_box arr =
   let min_x, max_x, min_y, max_y =
-    ref max_float, ref min_float, ref max_float, ref min_float in
+    ref max_float, ref (-.max_float), ref max_float, ref (-.max_float) in
   Array.iter (fun c ->
       let re, im = c.re,c.im in
       if re < !min_x then min_x := re;
@@ -93,13 +110,53 @@ let intersecting_cell c1 c2 =
   else true
 
 (* Récupère les cellules d'un tableau qui intersectent une cellule c en utilisant intersecting_cell c1 c2*)
-let intersecting_cells cells c = 
+let intersecting_cells cells cell = 
   let rec aux i acc =
     match i with
     | i when i = Array.length cells -> acc
-    | i when intersecting_cell cells.(i) c -> aux (i+1) (acc @ [i]) (* REMPLACER i PAR c pour ne pas avoir l'index mais les données*)
+    | i when intersecting_cell cells.(i) cell -> aux (i+1) (acc @ [i]) (* REMPLACER i PAR cell pour ne pas avoir l'index mais les données*)
     | i -> aux (i+1) acc
   in aux 0 []
+
+(* Calcule la boite englobante de f(cellule)*)
+let julia_cell cell c =
+  let z1 = julia cell.p1 c in
+  let z2 = julia {re = cell.p1.re; im = cell.p2.im} c in
+  let z3 = julia cell.p2 c in
+  let z4 = julia {re = cell.p2.re; im = cell.p1.im} c in
+  let arr = [|z1;z2;z3;z4|] in
+  bounding_box arr
+
+let find_intersections arr cell =
+  let rec aux i acc =
+    match i with
+    | i when i = Array.length arr -> acc
+    | i when intersecting_cell arr.(i) cell -> aux (i+1) (acc @ [i])
+    | i -> aux (i+1) acc
+  in aux 0 []
+
+let make_graph cells =
+  {vertices = cells; edges = Array.make (Array.length cells) []}
+
+
+let build_edges g c= 
+Array.iteri (fun i cell -> g.edges.(i) <- find_intersections g.vertices (julia_cell cell c)) g.vertices 
+
+let algo c i = 
+  let g = make_graph [|{p1 = {re = -2.; im = 2.}; p2 = {re = 2.; im = -2.}}|] in
+  let rec aux i g =
+    match i with
+    | i when i = 0 -> g.vertices
+    | i -> 
+      let g = make_graph (subdivide_graph g) in
+      build_edges g c;
+      aux (i-1) {vertices = composante_max g; edges = Array.make (Array.length g.vertices) []}
+  in aux i g
+
+
+
+
+  
 
   (* Il reste à : 
      - Calculer une approximation de f(cellule) avec l'arithmétique des intervalles (trouver une boîte englobante de f(cellule) quoi)
