@@ -1,3 +1,7 @@
+#use "topfind";;
+#require "cairo2";;
+open Cairo;;
+
 (* TYPES *)
 
 (* Définit les coordonnées min et max (dans la hauteur et la largeur) d'un espace quelconque à afficher *)
