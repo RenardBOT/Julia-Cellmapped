@@ -1,4 +1,6 @@
-(* array containing various squares defined by a corner and their side length*)
+(* TYPES *)
+
+(* Définit les coordonnées min et max (dans la hauteur et la largeur) d'un espace quelconque à afficher *)
 type workspace = {
   min_x : float;
   min_y : float;
@@ -6,6 +8,7 @@ type workspace = {
   max_y : float;
 }
 
+(* Définit l'espace utilisé pour afficher l'ensemble de Julia*)
 let julia_workspace = {
   min_x = -.2.;
   min_y = -.2.;
@@ -13,6 +16,7 @@ let julia_workspace = {
   max_y = 2.;
 }
 
+(* Dessine chaque cellule dans une image *)
 let draw cells workspace =
   let width = 500 in
   let height = 500 in
