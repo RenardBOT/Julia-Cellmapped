@@ -1,7 +1,7 @@
 open Complex
+open Sys
 
-(* TYPES *)
-
+(* ----------------- MODULE CELLULE ------------------- *)
 
 (*  Une cellule est représentée par p1 son coin supérieur gauche, et p2 son coin inférieur droit :
 
@@ -19,72 +19,29 @@ type cell = {
     p2 : Complex.t; 
 } 
 
-(* Graphe de cellules avec une représentation via liste d'adjacence*)
-type graph = { 
-    vertices: cell array; 
-    edges: ((int) list) array 
-} 
-
-(* tosrtrings pour debug *)
-
-let complex_to_string z =
-  Printf.sprintf "%s + i%s" (Float.to_string z.re) (Float.to_string z.im)
-
-let cell_to_string c =
-  Printf.sprintf "Cell( %s ; %s )" (complex_to_string c.p1) (complex_to_string c.p2)
-
-(* Méthodes simplifiant la création de cellules et de complexes*)
-
+(* Méthodes simplifiant la création de cellules*)
 let make_cell p1 p2 =
   {p1 = p1; p2 = p2;}
 
-let complex re im = 
-  {re = re; im = im}
 
 (* Divise une cellule c en x parties horizontalement, et y parties verticalement.
    Par exemple subdivide c 2 2 divise une cellule en 4. 
    Retourne une liste contenant toutes les cellules, colonne par colonne*)
-
 let subdivide cell x y =
-  let arr = Array.make (x*y) cell in
-  let dx = (cell.p2.re -. cell.p1.re) /. (float_of_int x) in
-  let dy = (cell.p1.im -. cell.p2.im) /. (float_of_int y) in
-  let rec aux i j =
-    match i,j with
-    | i,j when i = x -> ()
-    | i,j when j = y -> aux (i+1) 0
-    | i,j ->
-      let p1 = {re = cell.p1.re +. (float_of_int i) *. dx; im = cell.p1.im -. (float_of_int j) *. dy} in
-      let p2 = {re = cell.p1.re +. (float_of_int (i+1)) *. dx; im = cell.p1.im -. (float_of_int (j+1)) *. dy} in
-      arr.(i*y+j) <- {p1 = p1; p2 = p2};
-      aux i (j+1)
-  in aux 0 0;
-  arr
-
-let subdivide_graph g =
-  let arr = Array.make (Array.length g.vertices * 4) g.vertices.(0) in
-  let rec aux i =
-    match i with
-    | i when i = Array.length g.vertices -> ()
-    | i ->
-      let sub = subdivide g.vertices.(i) 2 2 in
-      Array.iteri (fun j x -> arr.(i*4+j) <- x) sub;
-      aux (i+1)
-  in aux 0;
-  arr
-
-(* Affiche les arêtes du graphe *)
-
-
-
-(* Affiche les sommets du graphe *)
-let print_vertices g =
-  Array.iter (fun x -> Printf.printf "%s\n" (cell_to_string x)) g.vertices
-
-(* Applique la fonction f(z) = z²+c *)
-let julia z c =
-  Complex.add (Complex.mul z z) c
-
+let arr = Array.make (x*y) cell in
+let dx = (cell.p2.re -. cell.p1.re) /. (float_of_int x) in
+let dy = (cell.p1.im -. cell.p2.im) /. (float_of_int y) in
+let rec aux i j =
+  match i,j with
+  | i,j when i = x -> ()
+  | i,j when j = y -> aux (i+1) 0
+  | i,j ->
+    let p1 = {re = cell.p1.re +. (float_of_int i) *. dx; im = cell.p1.im -. (float_of_int j) *. dy} in
+    let p2 = {re = cell.p1.re +. (float_of_int (i+1)) *. dx; im = cell.p1.im -. (float_of_int (j+1)) *. dy} in
+    arr.(i*y+j) <- {p1 = p1; p2 = p2};
+    aux i (j+1)
+in aux 0 0;
+arr
 
 (* Calcule la plus petite cellule englobant le tableau des complexes passés en paramètre*) 
 let bounding_box arr =
@@ -118,30 +75,39 @@ let intersecting_cells cells cell =
     | i -> aux (i+1) acc
   in aux 0 []
 
-(* Calcule la boite englobante de f(cellule)*)
-let julia_cell cell c =
-  let z1 = julia cell.p1 c in
-  let z2 = julia {re = cell.p1.re; im = cell.p2.im} c in
-  let z3 = julia cell.p2 c in
-  let z4 = julia {re = cell.p2.re; im = cell.p1.im} c in
-  let arr = [|z1;z2;z3;z4|] in
-  bounding_box arr
 
-let find_intersections arr cell =
-  let rec aux i acc =
-    match i with
-    | i when i = Array.length arr -> acc
-    | i when intersecting_cell arr.(i) cell -> aux (i+1) (acc @ [i])
-    | i -> aux (i+1) acc
-  in aux 0 []
 
+(* ----------------- MODULE GRAPHE ------------------- *)
+
+(* Graphe de cellules avec une représentation via liste d'adjacence*)
+type graph = { 
+    vertices: cell array; 
+    edges: ((int) list) array 
+} 
+
+(* Crée un graphe à partir d'un tableau de cellules *)
 let make_graph cells =
   {vertices = cells; edges = Array.make (Array.length cells) []}
 
+(* Crée un complexe à partir de deux flottants *)
+let complex re im = 
+  {re = re; im = im}
 
-let build_edges g c= 
-Array.iteri (fun i cell -> g.edges.(i) <- find_intersections g.vertices (julia_cell cell c)) g.vertices 
 
+(* Applique une subdivision de cellules 2 2 à toutes les cellules d'un graphe *)
+let subdivide_graph g =
+  let arr = Array.make (Array.length g.vertices * 4) g.vertices.(0) in
+  let rec aux i =
+    match i with
+    | i when i = Array.length g.vertices -> ()
+    | i ->
+      let sub = subdivide g.vertices.(i) 2 2 in
+      Array.iteri (fun j x -> arr.(i*4+j) <- x) sub;
+      aux (i+1)
+  in aux 0;
+  arr
+
+(* Algorithme de Tarjan : Crée une liste des composantes fortement connexes du graphe*)
 let tarjan graphe =
   let nb_vertices = Array.length graphe.vertices in
   let index_sommet = Array.make nb_vertices (-1) in
@@ -182,21 +148,67 @@ let tarjan graphe =
   done;
 
   !composantes
-;;
 
 
+(* Renvoie la composante maximale du graphe *)
 let composante_max graphe =
   let composantes = tarjan graphe in
   let cmax= List.fold_left (fun acc c -> if List.length c > List.length acc then c else acc) [] composantes in
   Array.of_list cmax
 
+
+(* ----------------- MODULE JULIA ------------------- *)
+
+let complex_to_string c =
+    "(" ^ (string_of_float c.re) ^ " + i" ^ (string_of_float c.im) ^ ")"
+(* Applique la fonction f(z) = z²+c *)
+let julia z c =
+  Complex.add (Complex.mul z z) c
+
+(* Calcule la boite englobante de f(cellule)*)
+let julia_cell cell c =
+  let z1 = julia cell.p1 c in
+  let z2 = julia {re = cell.p1.re; im = cell.p2.im} c in
+  let z3 = julia cell.p2 c in
+  let z4 = julia {re = cell.p2.re; im = cell.p1.im} c in
+  let arr = [|z1;z2;z3;z4|] in
+  bounding_box arr
+
+(* Crée une liste contenant toutes les cellules d'un tableau intersectant une cellule en particulier*)
+let find_intersections arr cell =
+  let rec aux i acc =
+    match i with
+    | i when i = Array.length arr -> acc
+    | i when intersecting_cell arr.(i) cell -> aux (i+1) (acc @ [i])
+    | i -> aux (i+1) acc
+  in aux 0 []
+
+(* Pour chaque couple de cellule a,b, il y a une arête de a vers b ssi b intersecte f(a) *)
+let build_edges g c= 
+Array.iteri (fun i cell -> g.edges.(i) <- find_intersections g.vertices (julia_cell cell c)) g.vertices 
+
+
+
+(* Algorithme appliquant les subdivisions successives pour calculer le graphe lié à un ensemble de Julia passé en paramètres, avec i itérations*)
 let algo c i = 
+  let total_iter = i in
   let g = make_graph [|{p1 = {re = -2.; im = 2.}; p2 = {re = 2.; im = -2.}}|] in
   let rec aux i g =
     match i with
     | i when i = 0 -> g.vertices
     | i -> 
-      let g = make_graph (subdivide_graph g) in
-      build_edges g c;
-      aux (i-1) {vertices = composante_max g; edges = Array.make (Array.length g.vertices) []}
-  in aux i g
+      let start_time = Unix.gettimeofday () in
+      let g' = make_graph (subdivide_graph g) in
+      build_edges g' c;
+      let end_time = Unix.gettimeofday () in
+      let total_time = end_time -. start_time in
+      Printf.printf "Execution time step %d : %f\n" (total_iter-i+1) total_time;
+      aux (i-1) {vertices = composante_max g'; edges = Array.make (Array.length g'.vertices) []} in
+  aux i g 
+
+
+  (*
+draw_julia (-.0.835) (-.0.2321) 5 80. 1. "test2";; 
+     *)
+
+
