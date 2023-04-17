@@ -6,21 +6,6 @@ type cell = {
       p2 : Complex.t;
 }
 
-(* Graphes de test *)
-
-(* ABC forme une composante fortement connexe, DE aussi *)
-let g1 = {
-  vertices = [| 'A'; 'B'; 'C'; 'D'; 'E'; 'F'; 'G'; 'H' |];
-  edges = [| [1]; [2]; [0; 3]; [4]; [3]; [5; 7]; [4]; [6] |]
-}
-
-(* v3 v4 v5 forment une composante fortement connexe, voir papier du sujet figure 2*)
-
-let g2 = {
-  vertices = [| '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7' ; '8'|];
-  edges = [| [3;4]; [3;4;5]; [3;4]; [3;4;5]; [4;5]; [5;3;4]; [3;4;5]; [5] ; [3;4;5] |]
-}
-
 let tarjan graphe =
   let nb_vertices = Array.length graphe.vertices in
   let index_sommet = Array.make nb_vertices (-1) in
@@ -62,6 +47,7 @@ let tarjan graphe =
 
   !composantes
 ;;
+
 
 let composante_max graphe =
   let composantes = tarjan graphe in
