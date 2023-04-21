@@ -159,8 +159,10 @@ let composante_max graphe =
 
 (* ----------------- MODULE JULIA ------------------- *)
 
+(* Convertit un complex en string *)
 let complex_to_string c =
     "(" ^ (string_of_float c.re) ^ " + i" ^ (string_of_float c.im) ^ ")"
+    
 (* Applique la fonction f(z) = z²+c *)
 let julia z c =
   Complex.add (Complex.mul z z) c
@@ -206,9 +208,5 @@ let algo c i =
       aux (i-1) {vertices = composante_max g'; edges = Array.make (Array.length g'.vertices) []} in
   aux i g 
 
-
-  (*
-draw_julia (-.0.835) (-.0.2321) 5 80. 1. "test2";; 
-     *)
 
 
